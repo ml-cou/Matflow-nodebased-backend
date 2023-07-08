@@ -8,10 +8,20 @@ from django.http import JsonResponse
 from django.contrib.auth import authenticate, login
 from rest_framework import status
 from django.contrib.auth.models import User
+
+from .Matflow_Main.modules.classifier import knn, svm, log_reg, decision_tree, random_forest, perceptron
 from .Matflow_Main.modules.dataframe.correlation import display_pair
+from .Matflow_Main.modules.feature.append import append
+from .Matflow_Main.modules.feature.change_dtype import Change_dtype
+from .Matflow_Main.modules.feature.change_fieldname import change_field_name
+from .Matflow_Main.modules.feature.cluster import cluster_dataset
 from .Matflow_Main.modules.feature.creation import creation
+from .Matflow_Main.modules.feature.dropping import  drop_row, drop_column
+from .Matflow_Main.modules.feature.encoding import encoding
+from .Matflow_Main.modules.feature.merge_dataset import merge_df
+from .Matflow_Main.modules.feature.scaling import scaling
 from .Matflow_Main.modules.graph.barplot import Barplot
-from .Matflow_Main.modules.graph.customplot import comparison_plot
+from .Matflow_Main.modules.graph.customplot import Custom_plot
 from .Matflow_Main.modules.graph.lineplot import Lineplot
 from .Matflow_Main.modules.graph.pieplot import Pieplot
 from .Matflow_Main.modules.graph.countplot import Countplot
@@ -20,7 +30,19 @@ from .Matflow_Main.modules.graph.histogram import Histogram
 from .Matflow_Main.modules.graph.regplot import Regplot
 from .Matflow_Main.modules.graph.scatterplot import Scatterplot
 from .Matflow_Main.modules.graph.violinplot import Violinplot
-
+from .Matflow_Main.modules.model.classification import classification
+from .Matflow_Main.modules.model.model_report import model_report
+from .Matflow_Main.modules.model.prediction_classification import prediction_classification
+from .Matflow_Main.modules.model.prediction_regression import prediction_regression
+from .Matflow_Main.modules.model.regression import regression
+from .Matflow_Main.modules.model.split_dataset import split_dataset
+from .Matflow_Main.modules.regressor import linear_regression, ridge_regression, lasso_regression, \
+    decision_tree_regression, random_forest_regression, svr
+from .Matflow_Main.modules.utils import split_xy
+from .Matflow_Main.subpage.Reverse_ML import reverse_ml
+from .Matflow_Main.subpage.temp import temp
+from .Matflow_Main.subpage.time_series import  time_series
+from .Matflow_Main.subpage.time_series_analysis import  time_series_analysis
 
 
 @api_view(['POST'])
@@ -59,7 +81,6 @@ def login(request):
 
     return Response({'message': 'User logged in successfully.'}, status=status.HTTP_200_OK)
 def test_page(request):
-
     return render(request, 'index.html')
 @api_view(['GET', 'POST'])
 def display_group(request):
@@ -67,13 +88,9 @@ def display_group(request):
     file = data.get('file')
     # file=pd.read_csv(file)
     file = pd.DataFrame(file)
-
     group_var = data.get("group_var")
-
     agg_func = data.get("agg_func")
-
     numeric_columns = file.select_dtypes(include='number').columns
-
     data = file.groupby(by=group_var, as_index=False).agg(agg_func)
     data = data.to_json(orient='records')
     return JsonResponse({'data': data})
@@ -87,7 +104,6 @@ def display_correlation(request):
     correlation_data =file.corr(correlation_method)
     data = correlation_data.to_json(orient='records')
     return JsonResponse({'data': data})
-
 @api_view(['GET','POST'])
 def display_correlation_featurePair(request):
     data = json.loads(request.body)
@@ -176,7 +192,6 @@ def eda_violinplot(request):
     orient = data.get('orient')  # Get the orientation from the query parameter
     dodge=data.get('dodge')
     split=data.get('split')
-
     title=data.get('title')
     response= Violinplot(file,cat,num,hue,orient,dodge,split,title)
     return response
@@ -202,7 +217,6 @@ def eda_regplot(request):
     sctr = data.get('scatter')
     response= Regplot(file,x_var,y_var,title,sctr)
     return response
-
 @api_view(['GET','POST'])
 def eda_lineplot(request):
     data = json.loads(request.body)
@@ -224,13 +238,160 @@ def eda_customplot(request):
     x_var = data.get('x_var')
     y_var = data.get('y_var')
     hue = data.get('hue')
-    response= comparison_plot(file,x_var,y_var,hue)
+    response= Custom_plot(file,x_var,y_var,hue)
     return response
 @api_view(['GET','POST'])
 def feature_creation(request):
     data=json.loads(request.body)
     response = creation(data)
     return response
+@api_view(['GET','POST'])
+def changeDtype(request):
+    data=json.loads(request.body)
+    response = Change_dtype(data)
+    return response
+@api_view(['GET','POST'])
+def Alter_field(request):
+    data=json.loads(request.body)
+    response = change_field_name(data)
+    return response
+@api_view(['GET','POST'])
+def merge_dataset(request):
+    data=json.loads(request.body)
+    response = merge_df(data)
+    return response
+@api_view(['GET','POST'])
+def Encoding(request):
+    data=json.loads(request.body)
+    response = encoding(data)
+    return response
+@api_view(['GET','POST'])
+def Scaling(request):
+    data=json.loads(request.body)
+    response = scaling(data)
+    return response
+@api_view(['GET','POST'])
+def Drop_column(request):
+    data=json.loads(request.body)
+    response = drop_column(data)
+    return response
+@api_view(['GET','POST'])
+def Drop_row(request):
+    data=json.loads(request.body)
+    response = drop_row(data)
+    return response
+@api_view(['GET','POST'])
+def Append(request):
+    data=json.loads(request.body)
+    response = append(data)
+    return response
+@api_view(['GET','POST'])
+def Cluster(request):
+    data=json.loads(request.body)
+    response = cluster_dataset(data)
+    return response
+@api_view(['GET','POST'])
+def Split(request):
+    data=json.loads(request.body)
+    response = split_dataset(data)
+    print(response)
+    return response
+@api_view(['GET','POST'])
+def Build_model(request):
+    data=json.loads(request.body)
+    response = split_dataset(data)
+    return response
+@api_view(['GET','POST'])
+def Hyper_opti(request):
+    data=json.loads(request.body)
+    train_data=pd.DataFrame(data.get("train"))
+    test_data=pd.DataFrame(data.get("test"))
+    target_var=data.get("target_var")
+    X_train, y_train = split_xy(train_data, target_var)
+    X_test, y_test = split_xy(test_data, target_var)
+    type=data.get("type")
+    if(type=="classifier"):
+        classifier=data.get("classifier")
+        if(classifier=="K-Nearest Neighbors"):
+            response= knn.hyperparameter_optimization(X_train, y_train,data)
+        elif(classifier=="Support Vector Machine"):
+            response= svm.hyperparameter_optimization(X_train, y_train,data)
+        elif(classifier=="Logistic Regression"):
+            response= log_reg.hyperparameter_optimization(X_train, y_train,data)
+        elif(classifier=="Decision Tree Classification"):
+            response= decision_tree.hyperparameter_optimization(X_train, y_train,data)
+        elif(classifier=="Random Forest Classification"):
+            response = random_forest.hyperparameter_optimization(X_train, y_train, data)
+        elif(classifier=="Multilayer Perceptron"):
+            response = perceptron.hyperparameter_optimization(X_train, y_train, data)
+    else :
+        regressor = data.get("regressor")
+        if regressor == "Linear Regression":
+            response = linear_regression.hyperparameter_optimization(X_train, y_train,data)
+        elif regressor == "Ridge Regression":
+            response = ridge_regression.hyperparameter_optimization(X_train, y_train,data)
+        elif regressor == "Lasso Regression":
+            response = lasso_regression.hyperparameter_optimization(X_train, y_train,data)
+        elif regressor == "Decision Tree Regression":
+            response = decision_tree_regression.hyperparameter_optimization(X_train, y_train,data)
+        elif regressor == "Random Forest Regression":
+            response = random_forest_regression.hyperparameter_optimization(X_train, y_train,data)
+        elif regressor == "Support Vector Regressor":
+            response = svr.hyperparameter_optimization(X_train, y_train,data)
+    return response
+@api_view(['GET','POST'])
+def Build_model(request):
+    data=json.loads(request.body)
+    type=data.get("type")
+    if(type== "classifier"):
+        response = classification(data)
+    else:
+        response = regression(data)
+    return response
+@api_view(['GET','POST'])
+def model_evaluation(request):
+    data=json.loads(request.body)
+    response = model_report(data)
+    return response
+@api_view(['GET','POST'])
+def model_prediction(request):
+    data=json.loads(request.body)
+    type=data.get("type")
+    print(type)
+    if(type=="regressor"):
+        response=prediction_regression(data)
+    else:
+        response = prediction_classification(data)
+    return response
+@api_view(['GET','POST'])
+def Time_series(request):
+    data=json.loads(request.body)
+    response = time_series(data)
+    return response
+@api_view(['GET','POST'])
+def Time_series_analysis(request):
+    data=json.loads(request.body)
+    response = time_series_analysis(data)
+    return response
+@api_view(['GET','POST'])
+def Reverse_ml(request):
+    data=json.loads(request.body)
+    response = reverse_ml(data)
+    return response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def custom(data, var, params):
     idx_start = int(params.get("idx_start", 0))
