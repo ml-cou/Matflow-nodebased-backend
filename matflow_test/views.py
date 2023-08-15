@@ -1,10 +1,6 @@
-import json
-import pandas as pd
-import numpy as np
-from django.shortcuts import render
+import base64
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from django.http import JsonResponse
 from django.contrib.auth import authenticate, login
 from rest_framework import status
 from django.contrib.auth.models import User
@@ -40,7 +36,6 @@ from .Matflow_Main.modules.regressor import linear_regression, ridge_regression,
     decision_tree_regression, random_forest_regression, svr
 from .Matflow_Main.modules.utils import split_xy
 from .Matflow_Main.subpage.Reverse_ML import reverse_ml
-from .Matflow_Main.subpage.temp import temp
 from .Matflow_Main.subpage.time_series import  time_series
 from .Matflow_Main.subpage.time_series_analysis import  time_series_analysis
 
@@ -80,8 +75,9 @@ def login(request):
     login(request, user)
 
     return Response({'message': 'User logged in successfully.'}, status=status.HTTP_200_OK)
-def test_page(request):
-    return render(request, 'index.html')
+# @api_view(['GET', 'POST'])
+# def test_page(request):
+#     return HttpResponse("hello")
 @api_view(['GET', 'POST'])
 def display_group(request):
     data = json.loads(request.body)
@@ -123,9 +119,6 @@ def display_correlation_heatmap(request):
     correlation_data =pd.DataFrame(data.get('file'))
     response= display_heatmap(correlation_data)
     return response
-
-
-
 @api_view(['GET','POST'])
 def eda_barplot(request):
     data = json.loads(request.body)
@@ -135,8 +128,8 @@ def eda_barplot(request):
     num = data.get('num')  # Get the numerical variable from the query parameter
     hue = data.get('hue')  # Get the hue variable from the query parameter
     orient = data.get('orient')  # Get the orientation from the query parameter
-    annote=data.get('annote')
-    title=data.get('title')
+    annote = data.get('annote')
+    title = data.get('title')
 
     response= Barplot(file,cat,num,hue,orient,annote,title)
     return response
@@ -377,13 +370,71 @@ def model_prediction(request):
     return response
 import pickle
 from django.http import HttpResponse
-
 @api_view(['GET','POST'])
-def download_model(model):
+def download_model(file):
+    model = pickle.loads(file.get("model"))
     model_binary = pickle.dumps(model)
     response = HttpResponse(model_binary, content_type='application/octet-stream')
     response['Content-Disposition'] = f'attachment; filename="model_name".pkl"'
     return response
+
+
+
+
+import json
+import pandas as pd
+import numpy as np
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+
+@api_view(['GET', 'POST'])
+def deploy_data(request):
+    file = json.loads(request.body)
+    train_data = pd.DataFrame(file.get('train'))
+    target_var = file.get('target_var')
+    col_names_all = [col for col in train_data.columns if col != target_var]
+    col_names = train_data.columns.tolist()
+    correlations = train_data[col_names_all + [target_var]].corr()[target_var]
+
+    result = []
+    for col in col_names_all:
+        threshold = train_data[col].abs().max()
+        data_type = 'int' if np.issubdtype(train_data[col].dtype, np.integer) else 'float'
+        threshold = float(threshold) if correlations[col] >= 0 else float(-threshold)
+        result.append({"col": col, "value": float(threshold) if data_type == 'float' else int(threshold), "data_type": data_type})
+
+    response = {"result": result}
+    return JsonResponse(response)
+
+
+
+@api_view(['GET','POST'])
+def deploy_result(request):
+    file = json.loads(request.body)
+    model_bytes = base64.b64decode(file.get("model_deploy"))
+    model = pickle.loads(model_bytes)
+    result = file.get("result")
+    train_data = pd.DataFrame(file.get('train'))
+    target_var=file.get('target_var')
+    print(result)
+    print(target_var)
+    col_names_all = []
+    col_names=[]
+    for i in train_data.columns:
+        if i!=target_var:
+            col_names_all.append(i)
+    col_names.extend(result.keys())
+    print(col_names)
+    print(col_names_all)
+    X = [result[i] if i in col_names  else 0 for i in col_names_all]
+    # prediction = model.get_prediction(model_name, [X])
+    print(X)
+
+    prediction = model.predict([X])
+    obj = {
+        'pred': prediction[0],
+    }
+    return JsonResponse(obj)
 @api_view(['GET','POST'])
 def Time_series(request):
     data=json.loads(request.body)
