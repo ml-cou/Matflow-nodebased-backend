@@ -36,8 +36,8 @@ def creation(file):
 		return group_numerical(data, var, add_pipeline, add_or_mod,file)
 	elif add_or_mod=="Modify" and method=="Replace Values":
 		return replace_values(data,var,add_pipeline,file)
-	elif method=='Progress Apply':
-		return my_progress_apply(data,var,add_pipeline,file)
+	# elif method=='Progress Apply':
+	# 	return my_progress_apply(data,var,add_pipeline,file)
 	elif method=="New Column":
 		return add_new(data,var,add_pipeline,file)
 
@@ -228,11 +228,11 @@ def replace_values(data,var,add_pipeline,file):
 	new_value = temp.to_dict(orient="records")
 	return JsonResponse(new_value, safe=False)
 
-from tqdm import tqdm
-from ...epsilon import features
-
-tqdm.pandas()
-from rdkit import Chem
+# from tqdm import tqdm
+# from ...epsilon import features
+#
+# tqdm.pandas()
+# from rdkit import Chem
 
 
 # def my_progress_apply(data, var, add_pipeline, file):
@@ -253,31 +253,31 @@ from rdkit import Chem
 # 	return JsonResponse(new_value, safe=False)
 
 
-from tqdm import tqdm
-from ...epsilon import features
+# from tqdm import tqdm
+# from ...epsilon import features
 
-tqdm.pandas()
-from rdkit import Chem
+# tqdm.pandas()
+# from rdkit import Chem
 
 
-def my_progress_apply(data, var,addpipe,file):
-	temp = data.copy(deep=True)
-	fun = ['Compute All Features using RDKit', 'Chem.inchi.MolToInchiKey']
-	var=file.get("select_column")
-	file = file.get("data")
-	selected_fun = file.get('select_function')
-
-	new_value = pd.DataFrame()  # Initialize new_value as an empty DataFrame
-
-	if selected_fun == fun[0]:
-
-		# temp[var] = temp[var].astype(str)  # Convert values to strings if needed
-		new_value = temp.join(temp[var].progress_apply(features.ComputeAllFeatures).apply(
-					lambda x: pd.Series(x, dtype='object')))
-
-	elif selected_fun==fun[1]:
-			## 	problem is this is a list
-		new_value=temp[var].progress_apply(lambda x: Chem.inchi.MolToInchiKey(Chem.MolFromSmiles(x))).to_list()
-
-	new_value = new_value.to_dict(orient="records")
-	return JsonResponse(new_value, safe=False)
+# def my_progress_apply(data, var,addpipe,file):
+# 	temp = data.copy(deep=True)
+# 	fun = ['Compute All Features using RDKit', 'Chem.inchi.MolToInchiKey']
+# 	var=file.get("select_column")
+# 	file = file.get("data")
+# 	selected_fun = file.get('select_function')
+#
+# 	new_value = pd.DataFrame()  # Initialize new_value as an empty DataFrame
+#
+# 	if selected_fun == fun[0]:
+#
+# 		# temp[var] = temp[var].astype(str)  # Convert values to strings if needed
+# 		new_value = temp.join(temp[var].progress_apply(features.ComputeAllFeatures).apply(
+# 					lambda x: pd.Series(x, dtype='object')))
+#
+# 	elif selected_fun==fun[1]:
+# 			## 	problem is this is a list
+# 		new_value=temp[var].progress_apply(lambda x: Chem.inchi.MolToInchiKey(Chem.MolFromSmiles(x))).to_list()
+#
+# 	new_value = new_value.to_dict(orient="records")
+# 	return JsonResponse(new_value, safe=False)

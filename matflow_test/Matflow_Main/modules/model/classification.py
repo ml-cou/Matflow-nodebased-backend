@@ -1,9 +1,12 @@
+import base64
+
 import pandas as pd
 from django.http import JsonResponse
 from ...modules.utils import split_xy
 from ...modules.classifier import knn, svm, log_reg, decision_tree, random_forest, perceptron
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import json
+import pickle
 import numpy as np
 def classification(file):
     print(file.keys())
@@ -64,10 +67,13 @@ def classification(file):
         for key, value in list2.items()
     })
     y_prediction=json.dumps(y_prediction.tolist())
+    model= pickle.dumps(model)
+    model = base64.b64encode(model).decode('utf-8')
     obj={
         "metrics": selected_metrics,   #4
         "metrics_table":merged_list,     #8
-        "y_pred" : y_prediction
+        "y_pred" : y_prediction,
+        "model_deploy": model
     }
     return JsonResponse(obj)
 
