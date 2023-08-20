@@ -514,3 +514,22 @@ def filter_result(data, filter_var, filter_operator, filter_value):
             result = data.loc[data[filter_var] != filter_value]
 
     return result
+
+@api_view(['GET','POST'])
+
+def feature_selection(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        dataset = data['dataset']
+        table_name = data['table_name']
+        target_var = data['target_var']
+        method = data['method']
+
+        selected_features_df = feature_selection.feature_selection(dataset, table_name, target_var, method)
+
+        response_data = {
+            'selected_features': selected_features_df.to_dict(orient='records')
+        }
+        return JsonResponse(response_data)
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
