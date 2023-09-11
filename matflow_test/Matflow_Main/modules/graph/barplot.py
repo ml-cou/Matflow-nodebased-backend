@@ -58,7 +58,7 @@ def Barplot(data,cat,num,hue,orient,annotate,title):
 
 		# Create the Plotly graph with the base64-encoded image and increase size
 		graph = go.Figure(go.Image(source=f'data:image/png;base64,{image_base64}'))
-		graph.update_layout(font=dict(family="Arial", size=12), width=1000, height=1000,
+		graph.update_layout(font=dict(family="Arial", size=12), width=1000, height=800,
 							# xaxis=dict(editable=True),yaxis=dict(editable=True)
 							)
 		# Convert the graph to HTML and send as a response
@@ -68,8 +68,6 @@ def Barplot(data,cat,num,hue,orient,annotate,title):
 
 		# Return the graph JSON data
 		graph_json = graph.to_json()
-
-		print(graph_json)
 		return JsonResponse(graph_json, safe=False)
 
 
