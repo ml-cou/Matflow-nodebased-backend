@@ -1,12 +1,10 @@
 import pandas as pd
-import streamlit as st
 from django.http import JsonResponse
 
 
 def model_deployment(file):
     model_name = file.get("model_name")
     # dataset = pd.DataFrame(file.get("model_name"))
-
     model = file.get("models")
     # train_data_name = pd.DataFrame(file.get('train_name'))
     # test_data_name=dataset['test_name']
@@ -29,17 +27,23 @@ def model_deployment(file):
     col_names= file.get("col_names")
     prediction = ['']
     correlations = train_data[col_names + [target_var]].corr()[target_var]
-
+    df_correlations = pd.DataFrame(correlations)
+    df_correlations['Threshold'] = ''
     result=[]
     for i in col_names:
         threshold=train_data[i].abs().max()
         result[i]=threshold
+        df_correlations.at[i, 'Threshold'] = threshold
     X = [result[i] if i in col_names else 0 for i in col_names_all]
     prediction=model.predict(X)
 
+    df_correlations = df_correlations.drop(df_correlations.index[-1])
+    df_correlations = df_correlations.rename(columns={target_var: f'Correlation({target_var})'})
+    df_correlations = df_correlations.rename_axis("Name of Features", axis="index")
 
     obj={
-          'pred' : prediction[0],
+            'pred' : prediction[0],
+            'dataframe': df_correlations
         }
 
-    return JsonResponse (obj,safe=False)
+    return JsonResponse (obj)

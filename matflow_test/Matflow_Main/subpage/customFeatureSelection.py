@@ -3,10 +3,10 @@ from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
 from sklearn.model_selection import cross_validate
 import numpy as np
 
-
 import pandas as pd
 from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor
 from sklearn.model_selection import cross_validate
+
 
 def feature_selection(dataset, table_name, target_var, problem_type, kfold, display_opt, selected_features=None):
     try:
@@ -18,8 +18,9 @@ def feature_selection(dataset, table_name, target_var, problem_type, kfold, disp
         Y_n = tab[target_var]
 
         if problem_type == 'regression':
-            scoring = ['neg_mean_absolute_error','neg_mean_absolute_percentage_error', 'neg_mean_squared_error', 'neg_root_mean_squared_error']
-            df_columns = ['MAE','MAPE' ,'MSE', 'RMSE']
+            scoring = ['neg_mean_absolute_error', 'neg_mean_absolute_percentage_error', 'neg_mean_squared_error',
+                       'neg_root_mean_squared_error']
+            df_columns = ['MAE', 'MAPE', 'MSE', 'RMSE']
             estimator = ExtraTreesRegressor()
         else:
             scoring = ['accuracy', 'precision_macro', 'recall_macro', 'f1_macro']
@@ -36,7 +37,8 @@ def feature_selection(dataset, table_name, target_var, problem_type, kfold, disp
         to_sort_df = df_result.copy()
 
         for i in range(len(list_X)):
-            scores = cross_validate(estimator, X_n[list_X[i]].values.reshape(-1, 1), Y_n, cv=kfold, scoring=scoring, n_jobs=-1)
+            scores = cross_validate(estimator, X_n[list_X[i]].values.reshape(-1, 1), Y_n, cv=kfold, scoring=scoring,
+                                    n_jobs=-1)
             try:
                 to_sort_df.loc[list_X[i]] = [
                     round(scores['test_' + score].mean() * (1 if problem_type == 'classification' else -1), 4) for score
@@ -98,7 +100,7 @@ def feature_selection(dataset, table_name, target_var, problem_type, kfold, disp
                         df_result_group = df_result_group.drop(str(i + 5))
                     else:
                         k = str(i + 5)
-                        
+
         dropped_columns = df_result.copy()
 
         all_column_data_first = pd.DataFrame()
@@ -152,7 +154,6 @@ def feature_selection(dataset, table_name, target_var, problem_type, kfold, disp
 
             progress_percentage = (i + 1) / total_iterations
 
-
             # create a list to store dropped columns
             if i >= 1:
                 if problem_type == 'regression':
@@ -178,12 +179,10 @@ def feature_selection(dataset, table_name, target_var, problem_type, kfold, disp
             "df_all_result": df_all_result.to_dict(orient='index'),
             "dropped_columns": dropped_columns.to_dict(orient='index'),
             "progress_message": "Feature selection process completed!",
-            "group": feature_graph(df_result_group, df_all_result_group, problem_type, dropped_columns_group, 'group', table_name),
-            "single":feature_graph(df_result, df_all_result, problem_type, dropped_columns, 'single', table_name)
+            "group": feature_graph(df_result_group, df_all_result_group, problem_type, dropped_columns_group, 'group',
+                                   table_name),
+            "single": feature_graph(df_result, df_all_result, problem_type, dropped_columns, 'single', table_name)
         }
-        
-
-        
 
         return (response_data)
 
@@ -193,6 +192,7 @@ def feature_selection(dataset, table_name, target_var, problem_type, kfold, disp
 
 
 import plotly.graph_objects as go
+
 
 def feature_graph(df_result, df_all_result, problem_type, dropped_columns, keys, table_name):
     try:
@@ -276,6 +276,5 @@ def feature_graph(df_result, df_all_result, problem_type, dropped_columns, keys,
         'selected_features_data': selected_features_data,
         'dropped_features_data': dropped_features_data
     }
-
 
 
