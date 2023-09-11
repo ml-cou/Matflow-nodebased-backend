@@ -1,10 +1,16 @@
 import base64
+import json
+import pandas as pd
+import numpy as np
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.http import JsonResponse
 from django.contrib.auth import authenticate, login
 from rest_framework import status
 from django.contrib.auth.models import User
 
+from .Matflow_Main.modules import utils
+from .Matflow_Main.modules.classes import imputer
 from .Matflow_Main.modules.classifier import knn, svm, log_reg, decision_tree, random_forest, perceptron
 from .Matflow_Main.modules.dataframe.correlation import display_heatmap, display_pair
 from .Matflow_Main.modules.feature.append import append
@@ -36,6 +42,7 @@ from .Matflow_Main.modules.regressor import linear_regression, ridge_regression,
     decision_tree_regression, random_forest_regression, svr
 from .Matflow_Main.modules.utils import split_xy
 from .Matflow_Main.subpage.Reverse_ML import reverse_ml
+from .Matflow_Main.subpage.temp import temp
 from .Matflow_Main.subpage.time_series import  time_series
 from .Matflow_Main.subpage.time_series_analysis import  time_series_analysis
 
@@ -128,8 +135,8 @@ def eda_barplot(request):
     num = data.get('num')  # Get the numerical variable from the query parameter
     hue = data.get('hue')  # Get the hue variable from the query parameter
     orient = data.get('orient')  # Get the orientation from the query parameter
-    annote = data.get('annote')
-    title = data.get('title')
+    annote=data.get('annote')
+    title=data.get('title')
 
     response= Barplot(file,cat,num,hue,orient,annote,title)
     return response
@@ -257,6 +264,89 @@ def Alter_field(request):
     response = change_field_name(data)
     return response
 @api_view(['GET','POST'])
+def feature_selection(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        dataset = data['dataset']
+        table_name = data['table_name']
+        target_var = data['target_var']
+        method = data['method']
+        selected_features_df = feature_selection.feature_selection(dataset, table_name, target_var, method)
+        response_data = {
+            'selected_features': selected_features_df.to_dict(orient='records')
+        }
+        return JsonResponse(response_data)
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
+@api_view(['GET','POST'])
+def imputation_data1(request):
+    file=json.loads(request.body)
+    data=pd.DataFrame(file.get('file'))
+    # num_var = utils.get_numerical(data)
+    null_var = utils.get_null(data)
+    low_cardinality = utils.get_low_cardinality(data, add_hypen=True)
+    response = {
+        'null_var' : null_var,
+        'group_by': low_cardinality
+    }
+    return JsonResponse(response, safe=False)
+
+@api_view(['GET','POST'])
+def imputation_data2(request):
+    file=json.loads(request.body)
+    data=pd.DataFrame(file.get('file'))
+    var=file.get('Select_columns')
+    num_var = utils.get_numerical(data)
+    category=''
+    mode=None
+    max_val=None
+    if var in num_var:
+        category='numerical'
+        max_val = abs(data[var]).max()
+    else:
+        category= 'categorical'
+        mode = data[var].mode().to_dict()
+    null_var = utils.get_null(data)
+    low_cardinality = utils.get_low_cardinality(data, add_hypen=True)
+    response = {
+        'null_var': null_var,
+        'group_by': low_cardinality,
+        'max_val': max_val,
+        'mode' : mode,
+        'category': category
+    }
+    return JsonResponse(response, safe=False)
+
+
+@api_view(['GET', 'POST'])
+def imputation_result(request):
+    file = json.loads(request.body)
+    data=pd.DataFrame(file.get('file'))
+    strat,fill_group ,constant=None, None,0
+    strat=file.get('strategy')
+    fill_group=file.get('fill_group')
+    var=file.get("Select_columns")
+    constant=file.get('constant')
+    print(f"{strat} {fill_group} {var} {constant}")
+    fill_group = None if (fill_group == "-") else fill_group
+    # print(f"{fill_group}")
+    imp = imputer.Imputer(strategy=strat, columns=[var], fill_value=constant, group_col=fill_group)
+    new_value = imp.fit_transform(data)
+
+    # new_value=new_value.reset_index()
+    new_value=new_value.to_dict(orient='records')
+
+    response = {
+        "dataset": new_value
+    }
+
+    print(data)
+    print(new_value)
+    print(type(data))
+    print(type(new_value))
+    return JsonResponse(response, safe=False)
+
+@api_view(['GET','POST'])
 def merge_dataset(request):
     data=json.loads(request.body)
     response = merge_df(data)
@@ -295,7 +385,6 @@ def Cluster(request):
 def Split(request):
     data=json.loads(request.body)
     response = split_dataset(data)
-    print(response)
     return response
 @api_view(['GET','POST'])
 def Build_model(request):
@@ -305,11 +394,9 @@ def Build_model(request):
 @api_view(['GET','POST'])
 def Hyper_opti(request):
     data=json.loads(request.body)
-    print(data.keys())
     train_data=pd.DataFrame(data.get("train"))
     test_data=pd.DataFrame(data.get("test"))
     target_var=data.get("target_var")
-    print(target_var)
     # print(f"{train_data.head} {test_data.head} {target_var}")
     X_train, y_train = split_xy(train_data, target_var)
     X_test, y_test = split_xy(test_data, target_var)
@@ -341,7 +428,6 @@ def Hyper_opti(request):
         elif regressor == "Random Forest Regression":
             response = random_forest_regression.hyperparameter_optimization(X_train, y_train,data)
         elif regressor == "Support Vector Regressor":
-            print("in svr")
             response = svr.hyperparameter_optimization(X_train, y_train,data)
     return response
 @api_view(['GET','POST'])
@@ -362,7 +448,6 @@ def model_evaluation(request):
 def model_prediction(request):
     data=json.loads(request.body)
     type=data.get("type")
-    print(type)
     if(type=="regressor"):
         response=prediction_regression(data)
     else:
@@ -378,15 +463,6 @@ def download_model(file):
     response['Content-Disposition'] = f'attachment; filename="model_name".pkl"'
     return response
 
-
-
-
-import json
-import pandas as pd
-import numpy as np
-from django.http import JsonResponse
-from rest_framework.decorators import api_view
-
 @api_view(['GET', 'POST'])
 def deploy_data(request):
     file = json.loads(request.body)
@@ -394,19 +470,28 @@ def deploy_data(request):
     target_var = file.get('target_var')
     col_names_all = [col for col in train_data.columns if col != target_var]
     col_names = train_data.columns.tolist()
-    correlations = train_data[col_names_all + [target_var]].corr()[target_var]
-
+    # correlations = train_data[col_names_all + [target_var]].corr()[target_var]
+    correlations = train_data[col_names_all + [target_var]].corr(numeric_only=True)[target_var]
+    df_correlations = pd.DataFrame(correlations)
+    df_correlations['Threshold'] = ''
     result = []
     for col in col_names_all:
         threshold = train_data[col].abs().max()
         data_type = 'int' if np.issubdtype(train_data[col].dtype, np.integer) else 'float'
         threshold = float(threshold) if correlations[col] >= 0 else float(-threshold)
         result.append({"col": col, "value": float(threshold) if data_type == 'float' else int(threshold), "data_type": data_type})
+        df_correlations.at[col, 'Threshold'] = threshold
 
-    response = {"result": result}
+    df_correlations = df_correlations.drop(df_correlations.index[-1])
+    df_correlations = df_correlations.rename(columns={target_var: f'Correlation({target_var})'})
+    df_correlations = df_correlations.rename_axis("Name of Features", axis="index")
+    df_correlations = df_correlations.reset_index().to_dict(orient='records')
+
+    response = {"result": result,
+                'dataframe': df_correlations
+                }
+
     return JsonResponse(response)
-
-
 
 @api_view(['GET','POST'])
 def deploy_result(request):
@@ -416,20 +501,14 @@ def deploy_result(request):
     result = file.get("result")
     train_data = pd.DataFrame(file.get('train'))
     target_var=file.get('target_var')
-    print(result)
-    print(target_var)
     col_names_all = []
     col_names=[]
     for i in train_data.columns:
         if i!=target_var:
             col_names_all.append(i)
     col_names.extend(result.keys())
-    print(col_names)
-    print(col_names_all)
     X = [result[i] if i in col_names  else 0 for i in col_names_all]
     # prediction = model.get_prediction(model_name, [X])
-    print(X)
-
     prediction = model.predict([X])
     obj = {
         'pred': prediction[0],
@@ -450,18 +529,6 @@ def Reverse_ml(request):
     data=json.loads(request.body)
     response = reverse_ml(data)
     return response
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -514,22 +581,3 @@ def filter_result(data, filter_var, filter_operator, filter_value):
             result = data.loc[data[filter_var] != filter_value]
 
     return result
-
-@api_view(['GET','POST'])
-
-def feature_selection(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        dataset = data['dataset']
-        table_name = data['table_name']
-        target_var = data['target_var']
-        method = data['method']
-
-        selected_features_df = feature_selection.feature_selection(dataset, table_name, target_var, method)
-
-        response_data = {
-            'selected_features': selected_features_df.to_dict(orient='records')
-        }
-        return JsonResponse(response_data)
-    else:
-        return JsonResponse({'error': 'Invalid request method'})
