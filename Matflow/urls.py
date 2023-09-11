@@ -1,19 +1,4 @@
-"""
-URL configuration for Matflow project.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path
 
@@ -22,7 +7,7 @@ from matflow_test.views import login, signup, display_group, display_correlation
     eda_scatterplot, eda_regplot, eda_lineplot, eda_customplot, feature_creation, Alter_field, changeDtype, \
     merge_dataset, Encoding, Scaling, Drop_row, Drop_column, Append, Cluster, Split, Time_series, Time_series_analysis, \
     Hyper_opti, Build_model, model_evaluation, Reverse_ml, model_prediction, display_correlation_heatmap, \
-    download_model, deploy_data, deploy_result
+    download_model, deploy_data, deploy_result, imputation_data1, imputation_data2, imputation_result, feature_selection
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -51,6 +36,10 @@ urlpatterns = [
     path('api/drop_column/', Drop_column, name='dropping'),
     path('api/drop_rows/', Drop_row, name='dropping'),
     path('api/append/', Append, name='dropping'),
+    path('api/imputation_data1', imputation_data1, name='imputation_data1'),
+    path('api/imputation_data2', imputation_data2, name='imputation_data2'),
+    path('api/imputation_result', imputation_result, name='imputation_result'),
+    path('api/feature_selection/', feature_selection, name='dropping'),
     path('api/cluster/', Cluster, name='dropping'),
     path('api/split_dataset/', Split, name='dropping'),
     path('api/build_model/', Build_model, name='dropping'),
