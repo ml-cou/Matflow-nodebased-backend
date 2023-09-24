@@ -13,6 +13,7 @@ from .Matflow_Main.modules import utils
 from .Matflow_Main.modules.classes import imputer
 from .Matflow_Main.modules.classifier import knn, svm, log_reg, decision_tree, random_forest, perceptron
 from .Matflow_Main.modules.dataframe.correlation import display_heatmap, display_pair
+from .Matflow_Main.modules.feature import feature_selection
 from .Matflow_Main.modules.feature.append import append
 from .Matflow_Main.modules.feature.change_dtype import Change_dtype
 from .Matflow_Main.modules.feature.change_fieldname import change_field_name
@@ -263,19 +264,22 @@ def Alter_field(request):
     data=json.loads(request.body)
     response = change_field_name(data)
     return response
+from numpyencoder import NumpyEncoder
 @api_view(['GET','POST'])
-def feature_selection(request):
+def feature_selection_api(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        dataset = data['dataset']
-        table_name = data['table_name']
-        target_var = data['target_var']
-        method = data['method']
-        selected_features_df = feature_selection.feature_selection(dataset, table_name, target_var, method)
+        dataset = pd.DataFrame(data.get('dataset')).reset_index(drop=True)
+        print(dataset.head())
+        # table_name = data['table_name']
+        target_var = data.get('target_var')
+        method = data.get('method')
+        selected_features_df = feature_selection.feature_selection(data,dataset, target_var, method)
         response_data = {
-            'selected_features': selected_features_df.to_dict(orient='records')
+            'selected_features': selected_features_df
         }
-        return JsonResponse(response_data)
+        # return JsonResponse(response_data)
+        return JsonResponse(response_data, encoder=NumpyEncoder)
     else:
         return JsonResponse({'error': 'Invalid request method'})
 @api_view(['GET','POST'])
@@ -332,18 +336,12 @@ def imputation_result(request):
     # print(f"{fill_group}")
     imp = imputer.Imputer(strategy=strat, columns=[var], fill_value=constant, group_col=fill_group)
     new_value = imp.fit_transform(data)
-
-    # new_value=new_value.reset_index()
+    new_value=new_value.reset_index()
     new_value=new_value.to_dict(orient='records')
 
     response = {
         "dataset": new_value
     }
-
-    print(data)
-    print(new_value)
-    print(type(data))
-    print(type(new_value))
     return JsonResponse(response, safe=False)
 
 @api_view(['GET','POST'])
